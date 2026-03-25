@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Operativo TRAMARSA</title>
+    <style>
+        /* ESTILO iOS + PALETA TRAMARSA OFICIAL */
+        :root {
+            --tramarsa-azul-oscuro: #092c74; 
+            --tramarsa-celeste: #5ba3c4; 
+            --tramarsa-rojo: #cc0000;
+            --bg-oscuro: #121212;
+            --bg-panel: rgba(28, 28, 30, 0.85); 
+            --bg-card: #1c1c1e;
+            --texto-claro: #f5f5f7;
+            --texto-secundario: #8e8e93;
+            --borde-sutil: rgba(255,255,255,0.1);
+        }
+
+        body { 
+            margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; 
+            background-color: var(--bg-oscuro); color: var(--texto-claro); 
+            font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* TOP BAR TRAMARSA Style */
+        .top-bar { 
+            display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; 
+            background-color: var(--tramarsa-azul-oscuro); 
+            border-bottom: 2px solid var(--tramarsa-celeste); z-index: 100;
+        }
+        .top-bar-left { display: flex; align-items: center; gap: 12px; }
+        .logo-text { font-size: 22px; font-weight: 800; color: white; letter-spacing: 0.5px; margin: 0; display: flex; align-items: center; gap: 8px;}
+        .logo-text span { color: var(--tramarsa-celeste); font-weight: 400;}
+
+        .date-filter { 
+            display: flex; align-items: center; gap: 8px; background-color: rgba(0,0,0,0.25); 
+            padding: 6px 14px; border-radius: 20px; margin-left: 20px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .date-filter label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7);}
+        .date-filter input { 
+            background-color: transparent; border: none; color: white; font-family: inherit; font-size: 13px; outline: none;
+        }
+        
+        /* BOTONES iOS adaptados */
+        .btn-ios {
+            border: none; padding: 8px 16px; border-radius: 18px; cursor: pointer; font-weight: 600; font-size: 13px;
+            transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .btn-primary { background-color: var(--tramarsa-celeste); color: #111; }
+        .btn-primary:hover { background-color: #4b8ba8; transform: scale(1.02); }
+        .btn-secondary { background-color: rgba(255,255,255,0.15); color: white; }
+        .btn-secondary:hover { background-color: rgba(255,255,255,0.25); }
+        .btn-ghost { background-color: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; }
+        .btn-ghost:hover { background-color: rgba(255,255,255,0.1); }
+
+        /* BANNERS ALERTA */
+        .alert-banner { display: none; color: white; text-align: center; padding: 10px; font-weight: 600; font-size: 14px; z-index: 90; animation: pulse-bg 2s infinite;}
+        #loa-warning { background-color: #ff3b30; border-bottom: 2px solid #8b0000;}
+        #event-warning { background-color: #ff9500; border-bottom: 2px solid #b26800;}
+        @keyframes pulse-bg { 0% { opacity: 1; } 50% { opacity: 0.85; } 100% { opacity: 1; } }
+
+        .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; position: relative; }
+        
+        .scrollable-board { flex-grow: 1; overflow-y: auto; overflow-x: auto; padding: 0 20px 20px 20px; }
+
+        /* PANEL LATERAL */
+        .side-panel { 
+            position: absolute; right: 0; top: 0; height: 100%; width: 380px; 
+            background-color: var(--bg-panel); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border-left: 1px solid var(--borde-sutil); display: none; flex-direction: column; overflow-y: auto; 
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5); z-index: 150; 
+        }
+        .form-container { padding: 25px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: span 2; }
+        .form-group label { font-size: 11px; margin-bottom: 6px; color: var(--texto-secundario); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+        .form-group input, .form-group select { 
+            padding: 10px 12px; background-color: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); 
+            color: white; border-radius: 10px; font-family: inherit; font-size: 14px; outline: none; transition: border 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--tramarsa-celeste); }
+        .input-disabled { background-color: rgba(255,255,255,0.05) !important; color: #888 !important; cursor: not-allowed; }
+        
+        .form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--borde-sutil);}
+        .form-header h3 { margin: 0; font-size: 18px; font-weight: 600; color: white; }
+        .close-btn { cursor: pointer; color: var(--texto-secundario); font-weight: bold; font-size: 20px; padding: 5px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background-color: rgba(255,255,255,0.1);}
+        .close-btn:hover { background-color: rgba(255,255,255,0.2); color: white;}
+        
+        .btn-submit { width: 100%; margin-top: 15px; padding: 12px; border-radius: 12px; font-size: 15px;}
+        .btn-shift { background-color: #ff9500; color: white; padding: 10px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; width: 100%; margin-top: 8px; display: none;}
+        .btn-merge { background-color: #5e5ce6; color: white; padding: 10px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; width: 100%; margin-top: 8px; display: none;}
+
+        /* GRILLA */
+        .grid-container { margin-top: 20px; display: grid; grid-template-columns: 60px 80px 0px repeat(4, minmax(300px, 1fr)); gap: 0px; background-color: #BBDAFC; border: 1px solid #444; min-width: 1300px; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.3);}
+        .header { background-color: var(--tramarsa-azul-oscuro); color: white; text-align: center; font-weight: 600; padding: 15px 5px; border-bottom: 2px solid var(--tramarsa-celeste); border-right: 1px solid #333; position: sticky; top: 0; z-index: 20; font-size: 15px; line-height: 1.3; letter-spacing: 0.5px;} 
+        .day-cell { background-color: #1a1a1a; display: flex; align-items: center; justify-content: center; font-weight: 700; border-right: 1px solid #333; border-bottom: 2px solid #666; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 18px; letter-spacing: 1px; color: var(--texto-secundario);} 
+        
+        .today-highlight { background-color: rgba(91, 163, 196, 0.25) !important; color: var(--tramarsa-celeste) !important; border-left: 3px solid var(--tramarsa-celeste); font-weight: 900;}
+
+        .shift-cell { background-color: #1c1c1e; text-align: center; display: flex; align-items: center; justify-content: center; border-right: 1px solid #333; font-size: 14px; font-weight: 600; color: #888;} 
+        .hour-cell { background-color: #252525; overflow: hidden;} 
+        .drop-zone { transition: background-color 0.2s; z-index: 1; border-right: 1px solid #333; border-bottom: 1px dashed #555;}
+        .drop-zone.drag-over { background-color: rgba(255, 255, 255, 0.05); }
+
+        /* NAVES */
+        .ship-block {
+            padding: 8px 12px; margin: 2px 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); z-index: 10; border-radius: 8px; overflow: hidden;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s; border: 1px solid rgba(255,255,255,0.15); 
+            border-left: 6px solid var(--tramarsa-azul-oscuro); display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .ship-block:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.6); }
+        .ship-block:active { cursor: grabbing; transform: scale(0.98); }
+        .dragging { opacity: 0.5; pointer-events: none; } 
+        .ship-highlight { box-shadow: 0 0 0 3px var(--tramarsa-celeste) !important; z-index: 20;}
+
+        .s-title { font-weight: 800; font-size: 16px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; letter-spacing: -0.3px;} 
+        .s-shipper { font-size: 11px; margin-bottom: 6px; font-weight: 700; display: flex; align-items: center; gap: 4px; text-transform: uppercase;}
+        .s-shipper::before { content: "🏢"; font-size: 10px;}
+        
+        .s-data-box { border-radius: 6px; padding: 6px; margin-bottom: 4px;}
+        .s-data { font-size: 13px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;} 
+        .s-flex { display: flex; justify-content: space-between; align-items: flex-start;}
+        .s-bold { font-weight: 700; font-size: 13px;}
+        
+        .s-tags-container { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px;}
+        .s-status-tag { font-size: 9px; padding: 3px 6px; border-radius: 6px; color: #fff; font-weight: 700; letter-spacing: 0.5px; line-height: 1;}
+        .s-shift-indicator { color: #ff9500; font-size: 9px; font-weight: 800; border: 1px solid #ff9500; padding: 2px 5px; border-radius: 6px;}
+        .s-loa-warning-tag { background-color: #ff3b30; color: white; padding: 3px 6px; border-radius: 6px; font-size: 9px; font-weight: 800; animation: pulse-text 1.5s infinite;}
+        @keyframes pulse-text { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .s-ops-right { text-align: right; margin-left: auto; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px; font-weight: 600;}
+        .s-nota { color: #ff9500; font-weight: 600; margin-top: 6px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 4px; font-size: 12px; font-family: -apple-system, sans-serif;} 
+
+        /* EVENTOS */
+        .event-block {
+            margin: 1px 4px; z-index: 5; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 14px; text-transform: uppercase; color: #111; box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            cursor: pointer; opacity: 0.85; border: 1px solid rgba(0,0,0,0.1);
+        }
+        body.is-dragging .event-block { pointer-events: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="top-bar-left">
+        <h2 class="logo-text">TRAMARSA <span>OPERACIONES</span></h2>
+        
+        <div class="date-filter">
+            <label>DESDE</label><input type="date" id="filtro-desde">
+            <label>HASTA</label><input type="date" id="filtro-hasta">
+            <button class="btn-ios btn-secondary" onclick="aplicarRangoFechas()" style="padding: 4px 10px; font-size: 11px;">Aplicar</button>
+        </div>
+
+        <button class="btn-ios btn-primary" id="btn-mostrar-naves" onclick="toggleFormulario('naves')" style="margin-left:15px;">+ Nueva Nave</button>
+        <button class="btn-ios btn-secondary" id="btn-mostrar-eventos" onclick="toggleFormulario('eventos')">+ Mantenimiento/Cierre</button>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+        <button class="btn-ios btn-ghost" id="btn-actualizar" onclick="sincronizarConExcel()">Guardar Cambios BD</button>
+        <span id="lbl-ultima-act" style="font-size: 10px; color: var(--texto-secundario); margin-top: 6px; font-weight: 600;">Última act: Cargando...</span>
+    </div>
+</div>
+
+<div id="loa-warning" class="alert-banner">⚠️ ¡ATENCIÓN! LA SUMA DE ESLORAS EN LOS MUELLES A, B Y C SUPERA EL LÍMITE (583m) ⚠️</div>
+<div id="event-warning" class="alert-banner">⚠️ ¡ALERTA! UNA NAVE ESTÁ PROGRAMADA DURANTE UN CIERRE O MANTENIMIENTO ⚠️</div>
+
+<div class="main-wrapper">
+    <div class="scrollable-board">
+        <div class="grid-container" id="terminal-board">
+            <div class="header">DAY</div><div class="header">SHIFT</div><div class="header">HR</div>
+            <div class="header">PIER "A"</div>
+            <div class="header">PIER "B"<br><span style="color:#ffcccc; font-size:12px; font-weight:normal;">MAX = 583m</span></div>
+            <div class="header">PIER "C"</div>
+            <div class="header" style="border-right:none;">PIER "F"<br><span style="color:#ffcccc; font-size:12px; font-weight:normal;">170-205m</span></div>
+        </div>
+    </div>
+
+    <div class="side-panel" id="sidebar">
+        
+        <div class="form-container" id="form-naves" style="display: none;">
+            <div class="form-header">
+                <h3>Detalles de la Nave</h3>
+                <div class="close-btn" onclick="toggleFormulario('none')">✕</div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group"><label>ID PLU</label><input type="text" id="in-id" class="input-disabled" readonly></div>
+                <div class="form-group"><label>LOA (Metros)</label><input type="number" step="0.01" id="in-loa"></div>
+                <div class="form-group full-width"><label>Vessel Name</label><input type="text" id="in-nombre" oninput="this.value = this.value.toUpperCase();"></div>
+                
+                <div class="form-group"><label>Berth (Muelle)</label>
+                    <select id="in-muelle"><option value="4">Muelle "A"</option><option value="5">Muelle "B"</option><option value="6">Muelle "C"</option><option value="7">Muelle "F"</option></select>
+                </div>
+                <div class="form-group"><label>Horas Netas Trab.</label><input type="number" id="in-tiempo"></div>
+
+                <div class="form-group full-width"><label>STATUS OPERATIVO</label>
+                    <select id="in-status">
+                        <option value="COMING SOON">COMING SOON</option>
+                        <option value="AT ANCHORAGE">AT ANCHORAGE</option>
+                        <option value="BERTHED">BERTHED</option>
+                        <option value="ATTENDED">ATTENDED</option>
+                    </select>
+                </div>
+                
+                <div class="form-group full-width"><label>ETA / ATA (Bahía)</label><input type="datetime-local" id="in-eta"></div>
+                <div class="form-group full-width"><label>ETB / ATB (Atraque)</label><input type="datetime-local" id="in-atb"></div>
+                <div class="form-group full-width"><label>ETD (Zarpe Calculado)</label><input type="datetime-local" id="in-etd" class="input-disabled" readonly></div>
+                
+                <div class="form-group full-width"><label>Shipper / Receiver</label><input type="text" id="in-shipper" placeholder="Ej: CERRO VERDE / TISUR" oninput="this.value = this.value.toUpperCase();"></div>
+                <div class="form-group full-width"><label>Agent (Agencia Marítima)</label><input type="text" id="in-agente" oninput="this.value = this.value.toUpperCase();"></div>
+                <div class="form-group full-width"><label>Stevedore (Agencia Estiba)</label><input type="text" id="in-estiba" oninput="this.value = this.value.toUpperCase();"></div>
+                <div class="form-group full-width"><label>Nota Interna</label><input type="text" id="in-nota" placeholder="Observaciones adicionales..."></div>
+                
+                <div class="form-group"><label>Op. 1</label>
+                    <select id="in-operacion"><option value="D">Descarga</option><option value="L">Embarque</option><option value="T">Turismo</option></select>
+                </div>
+                <div class="form-group"><label>Carga 1</label><input type="text" id="in-carga" oninput="this.value = this.value.toUpperCase();"></div>
+                <div class="form-group full-width"><label>Quantity 1 (MT)</label><input type="text" id="in-cantidad" oninput="this.value = this.value.toUpperCase();"></div>
+
+                <div class="form-group"><label>Op. 2 (Opcional)</label>
+                    <select id="in-operacion2"><option value=""></option><option value="D">Descarga</option><option value="L">Embarque</option><option value="T">Turismo</option></select>
+                </div>
+                <div class="form-group"><label>Carga 2</label><input type="text" id="in-carga2" oninput="this.value = this.value.toUpperCase();"></div>
+                <div class="form-group full-width"><label>Quantity 2 (MT)</label><input type="text" id="in-cantidad2" oninput="this.value = this.value.toUpperCase();"></div>
+                
+                <div class="form-group full-width" style="margin-top: 10px;">
+                    <button class="btn-ios btn-primary btn-submit" id="btn-guardar" onclick="guardarNuevaNave()">Guardar Nave</button>
+                    <button class="btn-ios btn-shift" id="btn-shift" onclick="dividirNaveShifting()">✂️ Dividir en Múltiples Muelles (Shifting)</button>
+                    <button class="btn-ios btn-merge" id="btn-merge" onclick="fusionarShifting()">🧲 Deshacer Shifting (Unir)</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-container" id="form-eventos" style="display: none;">
+            <div class="form-header">
+                <h3 style="color: #ff9500;">Bloqueo de Muelle</h3>
+                <div class="close-btn" onclick="toggleFormulario('none')">✕</div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group full-width"><label>ID</label><input type="text" id="ev-id" class="input-disabled" readonly></div>
+                <div class="form-group full-width"><label>Tipo de Evento</label>
+                    <select id="ev-tipo"><option value="Closure">Cierre de Puerto</option><option value="Cleanliness">Limpieza</option><option value="Maintenance">Mantenimiento</option></select>
+                </div>
+                <div class="form-group full-width"><label>Muelle Afectado</label>
+                    <select id="ev-muelle"><option value="4">Muelle "A"</option><option value="5">Muelle "B"</option><option value="6">Muelle "C"</option><option value="7">Muelle "F"</option></select>
+                </div>
+                <div class="form-group full-width"><label>Inicio</label><input type="datetime-local" id="ev-inicio"></div>
+                <div class="form-group full-width"><label>Fin</label><input type="datetime-local" id="ev-fin"></div>
+                
+                <button class="btn-ios btn-primary btn-submit" id="btn-guardar-evento" style="background-color: #ff9500; margin-top: 20px;" onclick="guardarEvento()">Registrar Bloqueo</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const tablero = document.getElementById('terminal-board');
+    let baseDatosNaves = []; 
+    let baseDatosEventos = [];
+    let naveEditando = null; 
+    let eventoEditando = null; 
+    
+    let fechaCeroPanel = new Date();
+    let totalFilas = 0;
+    
+    // Set seguro para almacenar los IDs en infracción de LOA
+    let barcosEnInfraccion = new Set();
+    
+    const turnosEstructurados = [ { nombre: "00 - 08", horas: ["00", "02", "04", "06"] }, { nombre: "08 - 16", horas: ["08", "10", "12", "14"] }, { nombre: "16 - 24", horas: ["16", "18", "20", "22"] } ];
+
+    function inicializarFechasDinamicas() {
+        let hoy = new Date();
+        let fechaDesde = new Date(hoy); fechaDesde.setDate(hoy.getDate() - 7);
+        let fechaHasta = new Date(hoy); fechaHasta.setDate(hoy.getDate() + 23);
+
+        let pad = (n) => n.toString().padStart(2, '0');
+        let formatoInput = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+        document.getElementById('filtro-desde').value = formatoInput(fechaDesde);
+        document.getElementById('filtro-hasta').value = formatoInput(fechaHasta);
+    }
+
+    function toggleFormulario(tipo) {
+        const sidebar = document.getElementById('sidebar');
+        const formNaves = document.getElementById('form-naves');
+        const formEventos = document.getElementById('form-eventos');
+
+        if (tipo === 'none') {
+            sidebar.style.display = 'none';
+            naveEditando = null; limpiarFormularioNave();
+            eventoEditando = null; limpiarFormularioEvento();
+        } else {
+            sidebar.style.display = 'flex';
+            formNaves.style.display = (tipo === 'naves') ? 'block' : 'none';
+            formEventos.style.display = (tipo === 'eventos') ? 'block' : 'none';
+            if(tipo === 'eventos') { naveEditando = null; limpiarFormularioNave(); }
+            if(tipo === 'naves') { eventoEditando = null; limpiarFormularioEvento(); }
+        }
+    }
+
+    function formatoDiaHora(isoString) {
+        if(!isoString) return "--/----";
+        let d = new Date(isoString);
+        return `${d.getDate().toString().padStart(2, '0')}/${d.getHours().toString().padStart(2, '0')}${d.getMinutes().toString().padStart(2, '0')}`;
+    }
+
+    function toLocalDatetimeInput(dateInput) {
+        if (!dateInput) return "";
+        let d = new Date(dateInput);
+        if (isNaN(d.getTime())) return "";
+        let pad = (n) => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    document.getElementById('in-atb').addEventListener('change', calcularETDFormulario);
+    document.getElementById('in-tiempo').addEventListener('input', calcularETDFormulario);
+
+    function calcularETDFormulario() {
+        let hrsVal = document.getElementById('in-tiempo').value;
+        let fechaBase = document.getElementById('in-atb').value; 
+
+        if (fechaBase && hrsVal) {
+            let d = new Date(fechaBase);
+            d.setHours(d.getHours() + parseFloat(hrsVal));
+            document.getElementById('in-etd').value = toLocalDatetimeInput(d);
+        }
+    }
+
+    const inputsForm = ['in-nombre', 'in-loa', 'in-muelle', 'in-eta', 'in-atb', 'in-tiempo', 'in-operacion', 'in-carga', 'in-cantidad', 'in-agente', 'in-estiba', 'in-nota', 'in-operacion2', 'in-carga2', 'in-cantidad2', 'in-shipper', 'in-status'];
+    inputsForm.forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            if(naveEditando) {
+                let n = baseDatosNaves.find(x => x.id === naveEditando);
+                n.nombre = document.getElementById('in-nombre').value; n.loa = document.getElementById('in-loa').value;
+                n.col = parseInt(document.getElementById('in-muelle').value);
+                n.status = document.getElementById('in-status').value;
+                
+                n.eta = document.getElementById('in-eta').value ? new Date(document.getElementById('in-eta').value).toISOString() : "";
+                n.atb = document.getElementById('in-atb').value ? new Date(document.getElementById('in-atb').value).toISOString() : "";
+                n.etd = document.getElementById('in-etd').value ? new Date(document.getElementById('in-etd').value).toISOString() : "";
+                
+                n.tiempoTrabajo = parseFloat(document.getElementById('in-tiempo').value) || 0;
+                n.operacion = document.getElementById('in-operacion').value; n.carga = document.getElementById('in-carga').value; n.cantidad = document.getElementById('in-cantidad').value; 
+                n.operacion2 = document.getElementById('in-operacion2').value; n.carga2 = document.getElementById('in-carga2').value; n.cantidad2 = document.getElementById('in-cantidad2').value; 
+                n.agente = document.getElementById('in-agente').value; n.estiba = document.getElementById('in-estiba').value; n.nota = document.getElementById('in-nota').value;
+                n.shipper = document.getElementById('in-shipper').value;
+                
+                calcularPosicionesInternas();
+                verificarLOA();
+                renderizarTableroVisual(); 
+            }
+        });
+    });
+
+    function aplicarRangoFechas() {
+        construirGrillaVisual();
+        calcularPosicionesInternas();
+        verificarLOA();
+        renderizarTableroVisual();
+    }
+
+    function construirGrillaVisual() {
+        let desdeStr = document.getElementById('filtro-desde').value;
+        let hastaStr = document.getElementById('filtro-hasta').value;
+
+        if(!desdeStr || !hastaStr) return;
+
+        let dDesde = new Date(desdeStr + "T00:00:00");
+        let dHasta = new Date(hastaStr + "T23:59:59");
+
+        if (dDesde > dHasta) { alert("La fecha 'Desde' no puede ser mayor que 'Hasta'."); return; }
+        fechaCeroPanel = new Date(desdeStr + "T00:00:00");
+
+        let milisegundosPorDia = 1000 * 60 * 60 * 24;
+        let totalDias = Math.ceil((dHasta - dDesde) / milisegundosPorDia);
+        totalFilas = totalDias * 12;
+
+        const cabeceras = Array.from(document.querySelectorAll('.header'));
+        tablero.innerHTML = '';
+        cabeceras.forEach(c => tablero.appendChild(c));
+        tablero.style.gridTemplateRows = `75px repeat(${totalFilas}, 20px)`;
+
+        let filaActual = 2;
+        const nombresDias = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+        let hoy = new Date();
+
+        for (let i = 0; i < totalDias; i++) {
+            let fechaActual = new Date(dDesde.getTime() + (i * milisegundosPorDia));
+            let strDia = `${nombresDias[fechaActual.getDay()]} ${fechaActual.getDate().toString().padStart(2, '0')}`;
+            
+            let esHoy = fechaActual.getDate() === hoy.getDate() && 
+                        fechaActual.getMonth() === hoy.getMonth() && 
+                        fechaActual.getFullYear() === hoy.getFullYear();
+
+            let celdaDia = document.createElement('div');
+            celdaDia.className = 'day-cell' + (esHoy ? ' today-highlight' : '');
+            celdaDia.textContent = strDia;
+            celdaDia.style.gridColumn = 1; celdaDia.style.gridRow = `${filaActual} / span 12`;
+            tablero.appendChild(celdaDia);
+
+            turnosEstructurados.forEach(turno => {
+                let celdaTurno = document.createElement('div');
+                celdaTurno.className = 'shift-cell'; celdaTurno.textContent = turno.nombre;
+                celdaTurno.style.gridColumn = 2; celdaTurno.style.gridRow = `${filaActual} / span 4`;
+                if (turno.nombre === "16 - 24") celdaTurno.style.borderBottom = "2px solid #666";
+                tablero.appendChild(celdaTurno);
+
+                turno.horas.forEach(hora => {
+                    let celdaHora = document.createElement('div');
+                    celdaHora.className = 'hour-cell'; celdaHora.style.gridColumn = 3; celdaHora.style.gridRow = filaActual;
+                    tablero.appendChild(celdaHora);
+                    filaActual++;
+                });
+            });
+        }
+
+        const muelles = [4, 5, 6, 7];
+        for (let r = 2; r <= totalFilas + 1; r++) {
+            muelles.forEach(columnaMuelle => {
+                let zona = document.createElement('div');
+                zona.className = 'drop-zone'; zona.style.gridColumn = columnaMuelle; zona.style.gridRow = r;
+                if ((r - 1) % 12 === 0) zona.style.borderBottom = "6px dashed #666";
+
+                zona.addEventListener('dragover', e => { e.preventDefault(); zona.classList.add('drag-over'); });
+                zona.addEventListener('dragleave', () => zona.classList.remove('drag-over'));
+                
+                zona.addEventListener('drop', e => {
+                    e.preventDefault(); zona.classList.remove('drag-over');
+                    
+                    let alertaPrevia = document.getElementById('loa-warning').style.display === 'block';
+                    let alertaEventoPrevia = document.getElementById('event-warning').style.display === 'block';
+
+                    const idNaveStr = e.dataTransfer.getData('text/plain');
+                    let naveMovida = baseDatosNaves.find(n => n.id === idNaveStr);
+                    
+                    if (naveMovida) {
+                        naveMovida.col = columnaMuelle; naveMovida.inicio = r; 
+                        let horasDesdeCero = (r - 2) * 2;
+                        let nuevaFechaCalculada = new Date(fechaCeroPanel.getTime() + (horasDesdeCero * 60 * 60 * 1000));
+                        
+                        naveMovida.atb = nuevaFechaCalculada.toISOString();
+                        if (naveMovida.status === 'COMING SOON') { naveMovida.eta = nuevaFechaCalculada.toISOString(); }
+
+                        let nuevoETD = new Date(nuevaFechaCalculada.getTime() + (naveMovida.tiempoTrabajo * 60 * 60 * 1000));
+                        naveMovida.etd = nuevoETD.toISOString();
+
+                        if(naveEditando === idNaveStr) {
+                            document.getElementById('in-muelle').value = columnaMuelle;
+                            document.getElementById('in-eta').value = toLocalDatetimeInput(naveMovida.eta);
+                            document.getElementById('in-atb').value = toLocalDatetimeInput(naveMovida.atb);
+                            document.getElementById('in-etd').value = toLocalDatetimeInput(naveMovida.etd);
+                        }
+
+                        let navesEnMuelle = baseDatosNaves.filter(n => n.col === columnaMuelle);
+                        navesEnMuelle.sort((a, b) => a.inicio - b.inicio);
+                        for (let i = 1; i < navesEnMuelle.length; i++) {
+                            let navAnt = navesEnMuelle[i-1]; let navAct = navesEnMuelle[i];
+                            let finAnt = navAnt.inicio + navAnt.duracion;
+                            
+                            if (navAct.inicio < finAnt) { 
+                                navAct.inicio = finAnt; 
+                                let horasCeroCascada = (finAnt - 2) * 2;
+                                let fechaCascada = new Date(fechaCeroPanel.getTime() + (horasCeroCascada * 60 * 60 * 1000));
+                                
+                                navAct.atb = fechaCascada.toISOString();
+                                if (navAct.status === 'COMING SOON') { navAct.eta = fechaCascada.toISOString(); }
+                                
+                                let etdCascada = new Date(fechaCascada.getTime() + (navAct.tiempoTrabajo * 60 * 60 * 1000));
+                                navAct.etd = etdCascada.toISOString();
+
+                                if(naveEditando === navAct.id) {
+                                    document.getElementById('in-eta').value = toLocalDatetimeInput(navAct.eta);
+                                    document.getElementById('in-atb').value = toLocalDatetimeInput(navAct.atb);
+                                    document.getElementById('in-etd').value = toLocalDatetimeInput(navAct.etd);
+                                }
+                            }
+                        }
+                        
+                        verificarLOA();
+                        renderizarTableroVisual();
+
+                        let alertaNueva = document.getElementById('loa-warning').style.display === 'block';
+                        if (!alertaPrevia && alertaNueva) alert("¡ATENCIÓN! El nuevo posicionamiento hace que la suma de LOA en los muelles A, B y C supere los 583m.");
+                        
+                        let alertaEventoNueva = document.getElementById('event-warning').style.display === 'block';
+                        if (!alertaEventoPrevia && alertaEventoNueva) alert("¡ALERTA! Has arrastrado la nave a un horario de Cierre o Mantenimiento.");
+                    }
+                });
+                tablero.appendChild(zona);
+            });
+        }
+    }
+
+    function calcularPosicionesInternas() {
+        baseDatosNaves.forEach(nave => {
+            nave.duracion = Math.ceil(nave.tiempoTrabajo / 2); 
+            let fechaReferencia = nave.atb; 
+            if (fechaReferencia) {
+                const horasDif = (new Date(fechaReferencia) - fechaCeroPanel) / (1000 * 60 * 60);
+                nave.inicio = 2 + Math.floor(horasDif / 2);
+            } else { nave.inicio = 2; }
+        });
+
+        baseDatosEventos.forEach(ev => {
+            if (ev.inicio && ev.fin) {
+                const horasInicio = (new Date(ev.inicio) - fechaCeroPanel) / (1000 * 60 * 60);
+                ev.inicioGrilla = 2 + Math.floor(horasInicio / 2);
+                const horasDuracion = (new Date(ev.fin) - new Date(ev.inicio)) / (1000 * 60 * 60);
+                ev.duracionGrilla = Math.max(1, Math.ceil(horasDuracion / 2));
+            }
+        });
+    }
+
+    // LÓGICA ROBUSTA LOA: EVALÚA LOS MUELLES A, B y C SIMULTÁNEAMENTE
+    function verificarLOA() {
+        barcosEnInfraccion.clear();
+        let loaPorFila = {};
+        let navesPorFila = {};
+        
+        baseDatosNaves.forEach(n => {
+            let muelle = parseInt(n.col);
+            // Evaluamos las naves en los Muelles A(4), B(5) y C(6)
+            if(!n.inicio || !n.duracion || (muelle !== 4 && muelle !== 5 && muelle !== 6)) return; 
+            
+            let start = parseInt(n.inicio); 
+            let end = start + parseInt(n.duracion) - 1;
+            let loaString = n.loa ? n.loa.toString().replace(',', '.') : "0";
+            let val = parseFloat(loaString) || 0;
+            
+            for(let i = start; i <= end; i++) { 
+                if (!loaPorFila[i]) { loaPorFila[i] = 0; navesPorFila[i] = []; }
+                loaPorFila[i] += val; 
+                navesPorFila[i].push(n.id);
+            }
+        });
+        
+        let excede = false;
+        for (let i in loaPorFila) {
+            // El trigger matemático real es 543, aunque visualmente el banner diga 583
+            if (loaPorFila[i] > 543) {
+                excede = true;
+                navesPorFila[i].forEach(id => barcosEnInfraccion.add(id));
+            }
+        }
+        
+        let bannerWarning = document.getElementById('loa-warning');
+        if (bannerWarning) {
+            bannerWarning.style.display = excede ? 'block' : 'none';
+        }
+    }
+
+    function verificarConflictosEventos() {
+        let conflicto = false;
+        baseDatosNaves.forEach(n => {
+            if(!n.inicio || !n.duracion) return;
+            let nStart = n.inicio; let nEnd = n.inicio + n.duracion - 1;
+
+            baseDatosEventos.forEach(ev => {
+                if(!ev.inicioGrilla) return;
+                let evStart = ev.inicioGrilla; let evEnd = ev.inicioGrilla + ev.duracionGrilla - 1;
+                let tipoUp = ev.tipo.toUpperCase();
+                if (n.col == ev.muelle && (tipoUp === 'CLOSURE' || tipoUp === 'MAINTENANCE')) {
+                    if (nStart <= evEnd && nEnd >= evStart) conflicto = true;
+                }
+            });
+        });
+        document.getElementById('event-warning').style.display = conflicto ? 'block' : 'none';
+    }
+
+    function renderizarTableroVisual() {
+        document.querySelectorAll('.ship-block').forEach(b => b.remove());
+        document.querySelectorAll('.event-block').forEach(b => b.remove());
+        
+        let limiteInferiorFila = totalFilas + 1;
+
+        baseDatosEventos.forEach(ev => {
+            if(!ev.inicioGrilla) return;
+            if (ev.inicioGrilla > limiteInferiorFila || (ev.inicioGrilla + ev.duracionGrilla) < 2) return;
+
+            let bloque = document.createElement('div');
+            bloque.className = 'event-block'; 
+            bloque.style.gridColumn = ev.muelle; bloque.style.gridRow = `${ev.inicioGrilla} / ${ev.inicioGrilla + ev.duracionGrilla}`;
+            
+            let tipoUp = ev.tipo.toUpperCase();
+            let colorFondo = '#34c759'; 
+            if (tipoUp === 'CIERRE' || tipoUp === 'CLOSURE') colorFondo = '#ffcc00'; 
+            if (tipoUp === 'MANTENIMIENTO' || tipoUp === 'MAINTENANCE') colorFondo = '#ff9500'; 
+            
+            bloque.style.backgroundColor = colorFondo;
+            bloque.innerHTML = `<div style="text-align:center; line-height: 1.2;"><div>${ev.tipo.toUpperCase()}</div><div style="font-size: 11px; font-weight: normal; margin-top: 2px; color: rgba(0,0,0,0.6);">${formatoDiaHora(ev.inicio)} - ${formatoDiaHora(ev.fin)}</div></div>`;
+            bloque.addEventListener('mousedown', () => seleccionarEventoFormulario(ev.id));
+            tablero.appendChild(bloque);
+        });
+
+        baseDatosNaves.forEach(datos => {
+            if(!datos.inicio || !datos.duracion) return;
+            if (datos.inicio > limiteInferiorFila || (datos.inicio + datos.duracion) < 2) return;
+
+            let bloque = document.createElement('div');
+            bloque.className = 'ship-block'; bloque.id = datos.id; bloque.draggable = true; 
+            bloque.style.gridColumn = datos.col; bloque.style.gridRow = `${datos.inicio} / ${datos.inicio + datos.duracion}`;
+
+            let estiba = datos.estiba ? datos.estiba.toUpperCase() : "";
+            let agenteMaritimo = datos.agente ? datos.agente.toUpperCase() : "";
+            let statusName = datos.status ? datos.status.toUpperCase() : "";
+            let shipperInfo = datos.shipper ? datos.shipper.toUpperCase() : "";
+            
+            let bgColor = "#2c2c2e"; let txtColor = "#f5f5f7"; let titleColor = "#f5f5f7";
+            let statusColor = "#636366"; 
+            
+            if (statusName === "COMING SOON") statusColor = "#0a84ff"; 
+            else if (statusName === "AT ANCHORAGE") statusColor = "#ff9f0a"; 
+            else if (statusName === "BERTHED") statusColor = "#32d74b"; 
+            else if (statusName === "ATTENDED") statusColor = "#bf5af2"; 
+
+            // Forzar nombre en rojo corporativo si el Agente es TRAMARSA
+            if (agenteMaritimo === "TRAMARSA") titleColor = "var(--tramarsa-rojo)"; 
+            
+            if (estiba === "TRAMARSA") { 
+                bgColor = "#ffffff"; txtColor = "#121212"; 
+                if (titleColor !== "var(--tramarsa-rojo)") titleColor = "var(--tramarsa-azul-oscuro)";
+            } else if (estiba.includes("TRAMARSA +")) { 
+                bgColor = "var(--tramarsa-azul-oscuro)"; txtColor = "white"; 
+                if (titleColor !== "var(--tramarsa-rojo)") titleColor = "var(--tramarsa-celeste)"; 
+            }
+            
+            bloque.style.backgroundColor = bgColor; bloque.style.color = txtColor;
+
+            let lblEtaAta = "ETA"; let lblEtbAtb = "ETB";
+            if (statusName === "BERTHED" || statusName === "ATTENDED") { lblEtaAta = "ATA"; lblEtbAtb = "ATB"; } 
+            else if (statusName === "AT ANCHORAGE") { lblEtaAta = "ATA"; lblEtbAtb = "ETB"; }
+
+            if (datos.tiempoTrabajo <= 16) {
+                let resumen = `RESUMEN NAVE\nNombre: ${datos.nombre}\nSTATUS: ${datos.status}\nShipper/Receiver: ${datos.shipper}\nLOA: ${datos.loa}m\n${lblEtaAta}: ${formatoDiaHora(datos.eta)}\n${lblEtbAtb}: ${formatoDiaHora(datos.atb)}\nETD: ${formatoDiaHora(datos.etd)}`;
+                resumen += `\nOp 1: ${datos.operacion || ''} ${datos.cantidad || ''} ${datos.carga || ''}`;
+                if (datos.operacion2 || datos.carga2 || datos.cantidad2) resumen += `\nOp 2: ${datos.operacion2 || ''} ${datos.cantidad2 || ''} ${datos.carga2 || ''}`;
+                resumen += `\nTiempo Trab: ${datos.tiempoTrabajo} Hrs`;
+                bloque.title = resumen;
+            }
+
+            let htmlNota = datos.nota ? `<div class="s-nota" style="border-top-color: ${txtColor === '#121212' ? '#ccc' : 'rgba(255,255,255,0.2)'};">Nota: ${datos.nota}</div>` : '';
+            let op1 = datos.operacion ? `${datos.operacion} - ${datos.cantidad || ''} ${datos.carga || ''}` : '';
+            let op2 = datos.operacion2 ? `<br>${datos.operacion2} - ${datos.cantidad2 || ''} ${datos.carga2 || ''}` : '';
+            
+            let htmlShift = datos.id.includes("-S") ? `<span class="s-shift-indicator">SHIFT</span>` : '';
+            let htmlLoaWarning = barcosEnInfraccion.has(datos.id) ? `<span class="s-loa-warning-tag">⚠️ LOA EXCEDIDO</span>` : '';
+            
+            let dataBoxBg = txtColor === 'white' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)';
+
+            bloque.innerHTML = `
+                <div>
+                    <div class="s-title" style="color: ${titleColor};">
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%;">${datos.nombre}</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="s-status-tag" style="background-color: ${statusColor}; margin: 0;">${datos.status || 'NO STATUS'}</span>
+                            <span style="color: ${titleColor}; font-family: monospace; font-size: 13px;">${datos.loa}</span>
+                        </div>
+                    </div>
+                    ${shipperInfo ? `<div class="s-shipper" style="color: ${txtColor === '#121212' ? '#666' : '#aaa'}">${shipperInfo}</div>` : ''}
+                </div>
+                
+                <div class="s-data-box" style="background-color: ${dataBoxBg};">
+                    <div class="s-flex"><div>${lblEtaAta}: <span class="s-bold">${formatoDiaHora(datos.eta)}</span></div><div class="s-bold">${datos.estiba || ''}</div></div>
+                    <div class="s-flex"><div>${lblEtbAtb}: <span class="s-bold">${formatoDiaHora(datos.atb)}</span></div><div class="s-ops-right">${op1}${op2}</div></div>
+                    <div>ETD: <span class="s-bold">${formatoDiaHora(datos.etd)}</span></div>
+                    ${htmlNota}
+                </div>
+                
+                <div class="s-tags-container">
+                    ${htmlShift}
+                    ${htmlLoaWarning}
+                </div>`;
+
+            bloque.addEventListener('mousedown', () => seleccionarNaveFormulario(datos.id));
+            
+            bloque.addEventListener('mouseenter', () => {
+                let familiaID = datos.id.replace("-S", "");
+                document.querySelectorAll('.ship-block').forEach(b => {
+                    if (b.id === familiaID || b.id === familiaID + "-S") b.classList.add('ship-highlight');
+                });
+            });
+            bloque.addEventListener('mouseleave', () => {
+                document.querySelectorAll('.ship-block').forEach(b => b.classList.remove('ship-highlight'));
+            });
+
+            bloque.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', bloque.id); document.body.classList.add('is-dragging'); setTimeout(() => bloque.classList.add('dragging'), 0); });
+            bloque.addEventListener('dragend', () => { document.body.classList.remove('is-dragging'); bloque.classList.remove('dragging'); });
+            tablero.appendChild(bloque);
+        });
+
+        verificarConflictosEventos();
+    }
+
+    function cargarTablero() {
+        inicializarFechasDinamicas(); 
+        google.script.run.withSuccessHandler(function(datos) {
+              baseDatosNaves = datos.naves;
+              baseDatosEventos = datos.eventos;
+              
+              if (datos.lastUpdate) {
+                  let d = new Date(datos.lastUpdate);
+                  let pad = (n) => n.toString().padStart(2, '0');
+                  document.getElementById('lbl-ultima-act').innerText = `Última act: ${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+              }
+              
+              aplicarRangoFechas(); 
+              limpiarFormularioNave(); limpiarFormularioEvento();
+          }).obtenerDatosCompletos();
+    }
+
+    function seleccionarNaveFormulario(id) {
+        let nave = baseDatosNaves.find(n => n.id === id);
+        if(!nave) return;
+        naveEditando = id;
+        
+        toggleFormulario('naves');
+        document.getElementById('btn-guardar').style.display = 'none'; 
+        
+        document.getElementById('in-id').value = nave.id; document.getElementById('in-nombre').value = nave.nombre;
+        document.getElementById('in-loa').value = nave.loa; document.getElementById('in-muelle').value = nave.col;
+        document.getElementById('in-status').value = nave.status || "COMING SOON";
+        document.getElementById('in-eta').value = toLocalDatetimeInput(nave.eta);
+        document.getElementById('in-atb').value = toLocalDatetimeInput(nave.atb);
+        document.getElementById('in-etd').value = toLocalDatetimeInput(nave.etd);
+        
+        document.getElementById('in-tiempo').value = nave.tiempoTrabajo;
+        document.getElementById('in-operacion').value = nave.operacion || "D";
+        document.getElementById('in-carga').value = nave.carga || ""; document.getElementById('in-cantidad').value = nave.cantidad || "";
+        document.getElementById('in-operacion2').value = nave.operacion2 || "";
+        document.getElementById('in-carga2').value = nave.carga2 || ""; document.getElementById('in-cantidad2').value = nave.cantidad2 || "";
+        document.getElementById('in-agente').value = nave.agente || ""; document.getElementById('in-estiba').value = nave.estiba || "";
+        document.getElementById('in-shipper').value = nave.shipper || ""; document.getElementById('in-nota').value = nave.nota || "";
+
+        let idMadre = nave.id.includes("-S") ? nave.id.replace("-S", "") : nave.id;
+        let tieneHija = baseDatosNaves.some(n => n.id === idMadre + "-S");
+        
+        if (tieneHija) {
+            document.getElementById('btn-shift').style.display = 'none';
+            document.getElementById('btn-merge').style.display = 'block';
+        } else {
+            document.getElementById('btn-shift').style.display = 'block';
+            document.getElementById('btn-merge').style.display = 'none';
+        }
+    }
+
+    function limpiarFormularioNave() {
+        let idMaximo = 0;
+        baseDatosNaves.forEach(n => { 
+            let numStr = n.id.replace("-S", ""); 
+            let num = parseInt(numStr); 
+            if(num > idMaximo) idMaximo = num; 
+        });
+        document.getElementById('btn-guardar').style.display = 'block';
+        document.getElementById('btn-shift').style.display = 'none';
+        document.getElementById('btn-merge').style.display = 'none';
+        
+        document.getElementById('in-id').value = idMaximo + 1;
+        ['in-nombre','in-loa','in-eta','in-atb','in-etd','in-tiempo','in-carga','in-cantidad','in-carga2','in-cantidad2','in-agente','in-estiba','in-shipper','in-nota'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('in-muelle').value = "4"; document.getElementById('in-operacion').value = "D"; document.getElementById('in-operacion2').value = ""; document.getElementById('in-status').value = "COMING SOON";
+        naveEditando = null;
+    }
+
+    function guardarNuevaNave() {
+        const btn = document.getElementById('btn-guardar');
+        const datos = {
+            id: document.getElementById('in-id').value, nombre: document.getElementById('in-nombre').value, loa: document.getElementById('in-loa').value,
+            muelle: document.getElementById('in-muelle').value, status: document.getElementById('in-status').value, eta: document.getElementById('in-eta').value, atb: document.getElementById('in-atb').value,
+            etd: document.getElementById('in-etd').value, tiempoTrabajo: document.getElementById('in-tiempo').value, shipper: document.getElementById('in-shipper').value,
+            operacion: document.getElementById('in-operacion').value, carga: document.getElementById('in-carga').value, cantidad: document.getElementById('in-cantidad').value, 
+            operacion2: document.getElementById('in-operacion2').value, carga2: document.getElementById('in-carga2').value, cantidad2: document.getElementById('in-cantidad2').value, 
+            agente: document.getElementById('in-agente').value, estiba: document.getElementById('in-estiba').value, nota: document.getElementById('in-nota').value
+        };
+        btn.textContent = 'Guardando...'; btn.disabled = true;
+        google.script.run.withSuccessHandler(function() {
+                btn.textContent = 'Guardar Nave'; btn.disabled = false; toggleFormulario('none'); cargarTablero();
+            }).agregarNaveALaBase(datos);
+    }
+
+    function dividirNaveShifting() {
+        if (!naveEditando) return;
+        let horasTrabajadas = prompt("¿Cuántas horas netas trabajará en el primer muelle antes del Shifting?");
+        if (horasTrabajadas === null || horasTrabajadas.trim() === "") return;
+        
+        let horasReales = parseFloat(horasTrabajadas);
+        let naveOriginal = baseDatosNaves.find(x => x.id === naveEditando);
+        
+        if (isNaN(horasReales) || horasReales <= 0 || horasReales >= naveOriginal.tiempoTrabajo) {
+            alert("Error: Las horas deben ser mayores a 0 y menores que el tiempo total de trabajo."); return;
+        }
+
+        let horasRestantes = naveOriginal.tiempoTrabajo - horasReales;
+        naveOriginal.tiempoTrabajo = horasReales;
+        let fechaBaseOrig = new Date(naveOriginal.atb);
+        let nuevoEtdOrig = new Date(fechaBaseOrig.getTime() + (horasReales * 60 * 60 * 1000));
+        naveOriginal.etd = nuevoEtdOrig.toISOString();
+
+        let naveShift = JSON.parse(JSON.stringify(naveOriginal)); 
+        naveShift.id = naveOriginal.id + "-S"; 
+        naveShift.tiempoTrabajo = horasRestantes;
+        naveShift.status = "AT ANCHORAGE"; 
+        
+        naveShift.eta = naveOriginal.etd;
+        naveShift.atb = naveOriginal.etd;
+        let nuevoEtdShift = new Date(nuevoEtdOrig.getTime() + (horasRestantes * 60 * 60 * 1000));
+        naveShift.etd = nuevoEtdShift.toISOString();
+
+        baseDatosNaves.push(naveShift);
+        
+        calcularPosicionesInternas();
+        verificarLOA();
+        renderizarTableroVisual();
+        seleccionarNaveFormulario(naveOriginal.id);
+    }
+
+    function fusionarShifting() {
+        if (!naveEditando) return;
+        let naveBase = baseDatosNaves.find(x => x.id === naveEditando);
+        
+        let idMadre = naveBase.id.includes("-S") ? naveBase.id.replace("-S", "") : naveBase.id;
+        let idHija = idMadre + "-S";
+
+        let indexMadre = baseDatosNaves.findIndex(x => x.id === idMadre);
+        let indexHija = baseDatosNaves.findIndex(x => x.id === idHija);
+
+        if (indexMadre > -1 && indexHija > -1) {
+            let madre = baseDatosNaves[indexMadre];
+            let hija = baseDatosNaves[indexHija];
+            
+            madre.tiempoTrabajo = madre.tiempoTrabajo + hija.tiempoTrabajo;
+            let fechaBaseOrig = new Date(madre.atb);
+            let nuevoEtdOrig = new Date(fechaBaseOrig.getTime() + (madre.tiempoTrabajo * 60 * 60 * 1000));
+            madre.etd = nuevoEtdOrig.toISOString();
+
+            baseDatosNaves.splice(indexHija, 1);
+            
+            calcularPosicionesInternas();
+            verificarLOA();
+            renderizarTableroVisual();
+            seleccionarNaveFormulario(idMadre);
+        }
+    }
+
+    function seleccionarEventoFormulario(id) {
+        let ev = baseDatosEventos.find(e => e.id === id);
+        if(!ev) return;
+        eventoEditando = id;
+        
+        toggleFormulario('eventos');
+        document.getElementById('ev-id').value = ev.id;
+        document.getElementById('ev-tipo').value = ev.tipo;
+        document.getElementById('ev-muelle').value = ev.muelle;
+        document.getElementById('ev-inicio').value = toLocalDatetimeInput(ev.inicio);
+        document.getElementById('ev-fin').value = toLocalDatetimeInput(ev.fin);
+        document.getElementById('btn-guardar-evento').textContent = 'Actualizar Evento';
+    }
+
+    function limpiarFormularioEvento() {
+        let idMaximo = 0;
+        baseDatosEventos.forEach(ev => { let num = parseInt(ev.id); if(num > idMaximo) idMaximo = num; });
+        document.getElementById('ev-id').value = idMaximo + 1;
+        document.getElementById('ev-tipo').value = 'Closure';
+        document.getElementById('ev-muelle').value = '4';
+        document.getElementById('ev-inicio').value = '';
+        document.getElementById('ev-fin').value = '';
+        document.getElementById('btn-guardar-evento').textContent = 'Registrar Bloqueo';
+        eventoEditando = null;
+    }
+
+    function guardarEvento() {
+        const btn = document.getElementById('btn-guardar-evento');
+        const datos = {
+            id: document.getElementById('ev-id').value, tipo: document.getElementById('ev-tipo').value,
+            muelle: document.getElementById('ev-muelle').value, inicio: document.getElementById('ev-inicio').value, fin: document.getElementById('ev-fin').value
+        };
+        btn.textContent = 'Guardando...'; btn.disabled = true;
+        google.script.run.withSuccessHandler(function() {
+            btn.textContent = 'Guardar Evento en BD'; btn.disabled = false; toggleFormulario('none'); cargarTablero();
+        }).guardarOActualizarEvento(datos);
+    }
+
+    function sincronizarConExcel() {
+        const btn = document.getElementById('btn-actualizar');
+        btn.textContent = 'Guardando...'; btn.disabled = true;
+
+        google.script.run
+            .withSuccessHandler(() => {
+                btn.textContent = 'Guardar Cambios BD'; btn.disabled = false; cargarTablero();
+            })
+            .withFailureHandler((err) => { alert("Error: " + err.message); btn.textContent = 'Guardar Cambios BD'; btn.disabled = false; })
+            .actualizarNavesEnBase(baseDatosNaves);
+    }
+
+    // Arranque
+    cargarTablero();
+</script>
+</body>
+</html>
